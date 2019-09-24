@@ -189,6 +189,41 @@ bool externalFuncs::FunctionHookEx(HANDLE hProcess, void* whereToHook, void* fun
 	return true;
 }
 
+DWORD externalFuncs::FindSigs(DWORD procID, HANDLE hProcess, uintptr_t gameModule, const char* pattern)
+{
+	const char* pat = pattern;
+	DWORD firstMatch = 0;
+	DWORD rangeStart = (DWORD)gameModule;
+	MODULEINFO miModInfo; GetModuleInformation(hProcess, (HMODULE)rangeStart, &miModInfo, sizeof(MODULEINFO));
+	DWORD rangeEnd = rangeStart + miModInfo.SizeOfImage;
+	for (DWORD pCur = rangeStart; pCur < rangeEnd; pCur++)
+	{
+		if (!*pat)
+			return firstMatch;
+
+		if (*(PBYTE)pat == '\?' || *(BYTE*)pCur == getByte(pat))
+		{
+			if (!firstMatch)
+				firstMatch = pCur;
+
+			if (!pat[2])
+				return firstMatch;
+
+			if (*(PWORD)pat == '\?\?' || *(PBYTE)pat != '\?')
+				pat += 3;
+
+			else
+				pat += 2;    //one ?
+		}
+		else
+		{
+			pat = pattern;
+			firstMatch = 0;
+		}
+	}
+	return NULL;
+}
+
 /* INTERNAL */
 MODULEINFO internalFuncs::GetModuleInfo(char* Module)
 {
@@ -273,4 +308,39 @@ bool internalFuncs::FunctionHook(void* whereToHook, void* function, int length)
 	VirtualProtect(whereToHook, length, oldProtect, &temp);
 
 	return true;
+}
+
+DWORD internalFuncs::FindSigs(std::string moduleName, std::string pattern)
+{
+	const char* pat = pattern.c_str();
+	DWORD firstMatch = 0;
+	DWORD rangeStart = (DWORD)GetModuleHandleA(moduleName.c_str());
+	MODULEINFO miModInfo; GetModuleInformation(GetCurrentProcess(), (HMODULE)rangeStart, &miModInfo, sizeof(MODULEINFO));
+	DWORD rangeEnd = rangeStart + miModInfo.SizeOfImage;
+	for (DWORD pCur = rangeStart; pCur < rangeEnd; pCur++)
+	{
+		if (!*pat)
+			return firstMatch;
+
+		if (*(PBYTE)pat == '\?' || *(BYTE*)pCur == getByte(pat))
+		{
+			if (!firstMatch)
+				firstMatch = pCur;
+
+			if (!pat[2])
+				return firstMatch;
+
+			if (*(PWORD)pat == '\?\?' || *(PBYTE)pat != '\?')
+				pat += 3;
+
+			else
+				pat += 2;    //one ?
+		}
+		else
+		{
+			pat = pattern.c_str();
+			firstMatch = 0;
+		}
+	}
+	return NULL;
 }
