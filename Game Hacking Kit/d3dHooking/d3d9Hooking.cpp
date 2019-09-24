@@ -1,8 +1,7 @@
 #include "d3dHooking.h"
 
 static HWND window;
-
-BOOL CALLBACK EnumWindowsCallback(HWND handle, LPARAM lParam)
+BOOL CALLBACK d3dHook::EnumWindowsCallback(HWND handle, LPARAM lParam)
 {
 	DWORD wndProcId;
 	GetWindowThreadProcessId(handle, &wndProcId);
@@ -14,14 +13,14 @@ BOOL CALLBACK EnumWindowsCallback(HWND handle, LPARAM lParam)
 	return FALSE; // window found abort search
 }
 
-HWND GetProcessWindow()
+HWND d3dHook::GetProcessWindow()
 {
 	window = NULL;
 	EnumWindows(EnumWindowsCallback, NULL);
 	return window;
 }
 
-bool GetD3D9Device(void ** pTable, size_t Size)
+bool d3dHook::GetD3D9Device(void ** pTable, size_t Size)
 {
 	if (!pTable)
 		return false;
@@ -60,53 +59,4 @@ bool GetD3D9Device(void ** pTable, size_t Size)
 	pDummyDevice->Release();
 	pD3D->Release();
 	return true;
-}
-
-bool GetD3D11SwapchainDeviceContext(void ** pSwapchainTable, size_t Size_Swapchain, void ** pDeviceTable, size_t Size_Device, void ** pContextTable, size_t Size_Context)
-{
-    DXGI_SWAP_CHAIN_DESC swapChainDesc{ 0 };
-    swapChainDesc.BufferCount                    = 1;
-    swapChainDesc.BufferDesc.Format                = DXGI_FORMAT_R8G8B8A8_UNORM;
-    swapChainDesc.BufferUsage                    = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-    swapChainDesc.OutputWindow                    = GetForegroundWindow();
-    swapChainDesc.SampleDesc.Count                = 1;
-    swapChainDesc.BufferDesc.ScanlineOrdering    = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
-    swapChainDesc.BufferDesc.Scaling            = DXGI_MODE_SCALING_UNSPECIFIED;
-    swapChainDesc.SwapEffect                    = DXGI_SWAP_EFFECT_DISCARD;
-
-    D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_11_0;
-
-    IDXGISwapChain        * pDummySwapChain    = nullptr;
-    ID3D11Device        * pDummyDevice        = nullptr;
-    ID3D11DeviceContext    * pDummyContext        = nullptr;
-
-    if (FAILED(D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, NULL, &featureLevel, 1, D3D11_SDK_VERSION, &swapChainDesc, &pDummySwapChain, &pDummyDevice, NULL, &pDummyContext)))
-    {
-        swapChainDesc.Windowed = TRUE;
-        if (FAILED(D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, NULL, &featureLevel, 1, D3D11_SDK_VERSION, &swapChainDesc, &pDummySwapChain, &pDummyDevice, NULL, &pDummyContext)))
-        {
-            return false;
-        }
-    }
-
-    if (pSwapchainTable)
-    {
-        memcpy(pSwapchainTable, *reinterpret_cast<void***>(pDummySwapChain), Size_Swapchain);
-    }
-
-    if (pDeviceTable)
-    {
-        memcpy(pDeviceTable, *reinterpret_cast<void***>(pDummyDevice), Size_Device);
-    }
-
-    if (pContextTable)
-    {
-        memcpy(pContextTable, *reinterpret_cast<void***>(pDummyContext), Size_Context);
-    }
-
-    pDummySwapChain->Release();
-    pDummyDevice->Release();
-    pDummyContext->Release();
-
-    return true;
 }
