@@ -1,3 +1,5 @@
+# DEPRECATED - Use at your own risk
+
 # Functions-For-Reverse-Engineering
 Functions To Get You Started For Hacking Games !
 Game hacking kit that has all the hacking functions you need.
